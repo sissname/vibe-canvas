@@ -68,6 +68,16 @@ async function run() {
     'Expected homepage to render VibeCanvas'
   );
 
+  const generationHealth = await request('/api/generate/health');
+  assert(
+    generationHealth.status === 200,
+    `Expected generation health 200, got ${generationHealth.status}`
+  );
+  assert(
+    generationHealth.body?.configured === true,
+    'Expected default generation provider to be configured'
+  );
+
   const generated = await request('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

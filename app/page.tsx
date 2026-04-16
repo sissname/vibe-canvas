@@ -45,7 +45,7 @@ export default function Home() {
     setPrompt,
     status,
   } = useGenerationStore();
-  const { setFiles } = useFileStore();
+  const { files, setFiles } = useFileStore();
   const { hide, setUrl, show } = usePreviewStore();
 
   const isGenerating = status === 'generating';
@@ -63,7 +63,9 @@ export default function Home() {
   const openProjectPreview = (targetProject = project, openInNewTab = false) => {
     if (!targetProject) return;
 
-    const previewUrl = SimplePreviewService.createPreviewUrl(targetProject.previewHtml);
+    const previewUrl = SimplePreviewService.createPreviewUrl(
+      getEditablePreviewHtml(targetProject, files)
+    );
     setUrl(previewUrl);
     show();
 
@@ -394,7 +396,9 @@ function PreviewPanel({
   isGenerating: boolean;
   project: GeneratedProject;
 }) {
-  const previewDocument = SimplePreviewService.createPreviewDocument(project.previewHtml);
+  const { files } = useFileStore();
+  const previewHtml = getEditablePreviewHtml(project, files);
+  const previewDocument = SimplePreviewService.createPreviewDocument(previewHtml);
 
   return (
     <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.62fr)]">
@@ -461,21 +465,78 @@ function PreviewPanel({
 }
 
 function FilesPanel({ project }: { project: GeneratedProject }) {
+  const { files, selectedFileId, selectFile, updateFile } = useFileStore();
+  const editableFiles = files.length > 0 ? files : createProjectFiles(project.files);
+  const selectedFile = editableFiles.find((file) => file.id === selectedFileId) ?? editableFiles[0];
+
   return (
-    <div className="space-y-3">
-      {project.files.map((file) => (
-        <div key={file.path} className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[14px] font-semibold text-slate-950">{file.name}</p>
-              <p className="mt-1 text-[11px] text-slate-500">{file.path}</p>
-            </div>
-            <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-500 shadow-sm">
-              {file.language}
-            </span>
-          </div>
+    <div className="grid h-full min-h-[520px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="min-h-0 overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50">
+        <div className="border-b border-slate-200 bg-white px-4 py-3">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Project Files
+          </p>
+          <p className="mt-1 text-[13px] font-semibold text-slate-800">
+            选择文件后可直接编辑
+          </p>
         </div>
-      ))}
+
+        <div className="max-h-[456px] space-y-2 overflow-auto p-2">
+          {editableFiles.map((file) => {
+            const isSelected = selectedFile?.id === file.id;
+
+            return (
+              <button
+                key={file.id}
+                type="button"
+                onClick={() => selectFile(file.id)}
+                className={`w-full rounded-[18px] border px-3 py-3 text-left transition ${
+                  isSelected
+                    ? 'border-blue-300 bg-white shadow-sm ring-4 ring-blue-500/10'
+                    : 'border-transparent bg-transparent hover:border-slate-200 hover:bg-white/74'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-slate-950">{file.name}</p>
+                    <p className="mt-1 truncate text-[11px] text-slate-500">{file.path}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
+                    {file.language}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-slate-950 shadow-sm">
+        {selectedFile ? (
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-slate-900 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-semibold text-white">{selectedFile.name}</p>
+                <p className="mt-1 truncate text-[11px] text-white/42">{selectedFile.path}</p>
+              </div>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/62">
+                {isPreviewFile(selectedFile) ? '编辑后预览会同步' : '文档文件'}
+              </span>
+            </div>
+
+            <textarea
+              value={selectedFile.content}
+              onChange={(event) => updateFile(selectedFile.id, event.target.value)}
+              spellCheck={false}
+              className="min-h-[458px] flex-1 resize-none bg-slate-950 px-4 py-4 font-mono text-[12px] leading-6 text-slate-100 outline-none selection:bg-blue-500/40"
+            />
+          </>
+        ) : (
+          <div className="flex min-h-[520px] items-center justify-center p-6 text-center">
+            <p className="text-[13px] text-white/54">还没有生成文件。</p>
+          </div>
+        )}
+        </div>
     </div>
   );
 }
@@ -505,4 +566,14 @@ function createProjectFiles(files: GeneratedProject['files']): ProjectFile[] {
     createdAt: now,
     updatedAt: now,
   }));
+}
+
+function getEditablePreviewHtml(project: GeneratedProject, files: ProjectFile[]): string {
+  return files.find(isPreviewFile)?.content ?? project.previewHtml;
+}
+
+function isPreviewFile(file: Pick<ProjectFile, 'language' | 'path' | 'name'>): boolean {
+  const filePath = `${file.path}/${file.name}`.toLowerCase();
+
+  return file.language.toLowerCase() === 'html' || filePath.endsWith('.html');
 }

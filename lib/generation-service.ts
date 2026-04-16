@@ -1,9 +1,21 @@
 import { createMockGeneratedProject } from '@/lib/mock-generation';
-import { GenerateProjectRequest, GenerateProjectResponse } from '@/types/generation';
+import {
+  GeneratedProject,
+  GeneratedProjectFile,
+  GeneratedProjectSection,
+  GenerateProjectRequest,
+  GenerateProjectResponse,
+} from '@/types/generation';
 
 type GenerationProvider = 'mock' | 'openclaw';
 
-function getProvider(): GenerationProvider {
+export interface GenerationHealth {
+  configured: boolean;
+  provider: GenerationProvider;
+  issues: string[];
+}
+
+export function getGenerationProvider(): GenerationProvider {
   const provider = process.env.GENERATION_PROVIDER;
 
   if (provider === 'openclaw' || provider === 'mock') {
@@ -11,6 +23,21 @@ function getProvider(): GenerationProvider {
   }
 
   return 'mock';
+}
+
+export function getGenerationHealth(): GenerationHealth {
+  const provider = getGenerationProvider();
+  const issues: string[] = [];
+
+  if (provider === 'openclaw' && !process.env.OPENCLAW_GENERATE_URL) {
+    issues.push('OPENCLAW_GENERATE_URL is not configured');
+  }
+
+  return {
+    configured: issues.length === 0,
+    provider,
+    issues,
+  };
 }
 
 function assertPrompt(prompt: string): string {
@@ -41,7 +68,7 @@ export async function generateProject(
   request: Partial<GenerateProjectRequest>
 ): Promise<GenerateProjectResponse> {
   const prompt = assertPrompt(typeof request.prompt === 'string' ? request.prompt : '');
-  const provider = getProvider();
+  const provider = getGenerationProvider();
 
   if (provider === 'openclaw') {
     return generateWithOpenClaw(prompt);
@@ -74,5 +101,57 @@ async function generateWithOpenClaw(prompt: string): Promise<GenerateProjectResp
     throw new GenerationServiceError(errorBody?.error ?? 'OpenClaw generation failed', response.status);
   }
 
-  return (await response.json()) as GenerateProjectResponse;
+  const payload = await response.json().catch(() => null);
+
+  return validateGenerateProjectResponse(payload);
+}
+
+function validateGenerateProjectResponse(payload: unknown): GenerateProjectResponse {
+  if (!isRecord(payload) || !isGeneratedProject(payload.project)) {
+    throw new GenerationServiceError('OpenClaw returned an invalid project payload', 502);
+  }
+
+  return { project: payload.project };
+}
+
+function isGeneratedProject(value: unknown): value is GeneratedProject {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.prompt === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.tagline === 'string' &&
+    typeof value.description === 'string' &&
+    typeof value.primaryAction === 'string' &&
+    typeof value.secondaryAction === 'string' &&
+    Array.isArray(value.sections) &&
+    value.sections.every(isGeneratedProjectSection) &&
+    Array.isArray(value.files) &&
+    value.files.every(isGeneratedProjectFile) &&
+    typeof value.previewHtml === 'string' &&
+    typeof value.createdAt === 'string'
+  );
+}
+
+function isGeneratedProjectSection(value: unknown): value is GeneratedProjectSection {
+  return (
+    isRecord(value) &&
+    typeof value.title === 'string' &&
+    typeof value.description === 'string'
+  );
+}
+
+function isGeneratedProjectFile(value: unknown): value is GeneratedProjectFile {
+  return (
+    isRecord(value) &&
+    typeof value.name === 'string' &&
+    typeof value.path === 'string' &&
+    typeof value.language === 'string' &&
+    typeof value.content === 'string'
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
