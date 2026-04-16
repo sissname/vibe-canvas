@@ -394,44 +394,67 @@ function PreviewPanel({
   isGenerating: boolean;
   project: GeneratedProject;
 }) {
+  const previewDocument = SimplePreviewService.createPreviewDocument(project.previewHtml);
+
   return (
-    <div className="h-full rounded-[22px] bg-[linear-gradient(135deg,#f8fafc,#e0f2fe)] p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-blue-600">
-            Generated Draft
-          </p>
-          <h3 className="mt-3 max-w-[720px] text-[34px] font-semibold leading-tight tracking-[-0.035em] text-slate-950">
-            {isGenerating ? '正在生成页面主张...' : project.tagline}
-          </h3>
-        </div>
-        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm">
-          已生成
-        </span>
-      </div>
-
-      <p className="mt-4 max-w-[760px] text-[14px] leading-7 text-slate-600">
-        {project.description}
-      </p>
-
-      <div className="mt-6 flex flex-wrap gap-2">
-        <span className="rounded-full bg-slate-950 px-4 py-2 text-[13px] font-semibold text-white">
-          {project.primaryAction}
-        </span>
-        <span className="rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-slate-600">
-          {project.secondaryAction}
-        </span>
-      </div>
-
-      <div className="mt-7 grid gap-3 sm:grid-cols-3">
-        {project.sections.map((section) => (
-          <div key={section.title} className="rounded-[20px] bg-white/82 px-4 py-4 shadow-sm">
-            <p className="text-[13px] font-semibold text-slate-950">{section.title}</p>
-            <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-slate-500">
-              {section.description}
-            </p>
+    <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.62fr)]">
+      <div className="overflow-hidden rounded-[22px] border border-slate-200 bg-slate-950 shadow-sm">
+        <div className="flex items-center justify-between border-b border-white/10 bg-slate-900 px-4 py-3">
+          <div className="flex gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </div>
-        ))}
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/54">
+            Sandboxed Preview
+          </span>
+        </div>
+        <iframe
+          title="Generated project preview"
+          sandbox=""
+          srcDoc={previewDocument}
+          className="h-[420px] w-full bg-white"
+        />
+      </div>
+
+      <div className="rounded-[22px] bg-[linear-gradient(135deg,#f8fafc,#e0f2fe)] p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-blue-600">
+              Generated Draft
+            </p>
+            <h3 className="mt-3 text-[26px] font-semibold leading-tight tracking-[-0.035em] text-slate-950">
+              {isGenerating ? '正在生成页面主张...' : project.tagline}
+            </h3>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm">
+            已生成
+          </span>
+        </div>
+
+        <p className="mt-4 text-[14px] leading-7 text-slate-600">
+          {project.description}
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <span className="rounded-full bg-slate-950 px-4 py-2 text-[13px] font-semibold text-white">
+            {project.primaryAction}
+          </span>
+          <span className="rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-slate-600">
+            {project.secondaryAction}
+          </span>
+        </div>
+
+        <div className="mt-7 grid gap-3">
+          {project.sections.map((section) => (
+            <div key={section.title} className="rounded-[20px] bg-white/82 px-4 py-4 shadow-sm">
+              <p className="text-[13px] font-semibold text-slate-950">{section.title}</p>
+              <p className="mt-2 text-[11px] leading-5 text-slate-500">
+                {section.description}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

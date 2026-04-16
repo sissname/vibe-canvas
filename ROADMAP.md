@@ -11,12 +11,14 @@ VibeCanvas is currently an Alpha project. This roadmap focuses on turning the pr
 - [x] Local persistence for generated project state
 - [x] Smoke tests for homepage and generation API
 - [x] Open-source project hygiene
+- [x] App-level Error Boundary
+- [x] Sandboxed iframe preview MVP
 
 ## Beta
 
 - [ ] Real OpenClaw generation adapter with schema validation
 - [ ] Project save/load with a backend persistence layer
-- [ ] Hardened preview sandbox for generated HTML
+- [ ] Hardened preview sandbox with stronger isolation and interaction controls
 - [ ] Browser E2E tests for prompt, generation, tabs, and preview
 - [ ] Visual regression snapshots for desktop and mobile
 - [ ] Error monitoring and structured logging

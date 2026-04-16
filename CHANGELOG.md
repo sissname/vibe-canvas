@@ -15,6 +15,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Local persistence for generated project and file state.
 - Production smoke test script.
 - Open-source project files, including License, Contributing, Security, Code of Conduct, GitHub issue templates, PR template, and CI.
+- App-level Error Boundary with a user-facing recovery screen.
+- Sandboxed iframe preview MVP with a restrictive preview CSP.
 
 ### Changed
 
@@ -25,3 +27,4 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - Invalid JSON requests to `/api/generate` now return `400` instead of `500`.
 - `.env.example` is allowed through `.gitignore` while local `.env` files remain ignored.
+- Smoke tests now cover long prompt rejection and script-free mock preview output.

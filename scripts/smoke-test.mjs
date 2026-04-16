@@ -76,6 +76,10 @@ async function run() {
   assert(generated.status === 200, `Expected generate 200, got ${generated.status}`);
   assert(generated.body?.project?.title, 'Expected generated project title');
   assert(Array.isArray(generated.body?.project?.files), 'Expected generated project files');
+  assert(
+    generated.body?.project?.previewHtml?.includes('<script') === false,
+    'Expected generated preview HTML to avoid inline scripts'
+  );
 
   const emptyPrompt = await request('/api/generate', {
     method: 'POST',
@@ -90,6 +94,13 @@ async function run() {
     body: 'not-json',
   });
   assert(invalidJson.status === 400, `Expected invalid JSON 400, got ${invalidJson.status}`);
+
+  const longPrompt = await request('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: 'x'.repeat(2001) }),
+  });
+  assert(longPrompt.status === 400, `Expected long prompt 400, got ${longPrompt.status}`);
 
   console.log('Smoke tests passed');
 }
