@@ -16,11 +16,12 @@ Vibe coding lowers the barrier to creating software, but many tools still expose
 ## Current Capabilities
 
 - Prompt-first homepage for generating an app/page draft.
-- Generated project workspace with Preview, Files, and Structure tabs.
+- Generated project workspace with Preview, editable Files, and Structure tabs.
+- HTML file edits update the sandboxed preview.
 - Local mock generator for demo and development.
 - Optional OpenClaw provider hook via environment variables.
 - Local persistence for the latest generated project and files.
-- Smoke test that validates homepage rendering and key API paths.
+- Production smoke and provider contract tests for key API paths.
 
 ## Screenshot
 
@@ -35,8 +36,8 @@ Add a screenshot or GIF here after publishing the repository:
 - The default `GENERATION_PROVIDER=mock` does not call a real LLM.
 - Cloud persistence, authentication, user accounts, and rate limiting are not implemented.
 - Advanced canvas/workflow features are experimental.
-- Generated preview currently uses Blob HTML, not a hardened sandbox.
 - Browser-level E2E and visual regression tests are still needed.
+- The preview is sandboxed for static HTML and CSS, but it is not a full application runtime.
 
 ## Quick Start
 
@@ -67,7 +68,9 @@ npm run dev      # Start the dev server
 npm run build    # Build for production
 npm run start    # Start the production server
 npm run lint     # Run ESLint
-npm test         # Run production smoke tests
+npm test         # Run smoke and provider contract tests
+npm run test:smoke
+npm run test:provider
 ```
 
 ## OpenClaw Provider Contract
@@ -124,6 +127,7 @@ lib/
 stores/                      # Zustand stores
 types/                       # Shared TypeScript types
 scripts/smoke-test.mjs       # Production smoke test
+scripts/provider-contract-test.mjs # OpenClaw-compatible provider contract test
 ```
 
 ## Validation Before Publishing

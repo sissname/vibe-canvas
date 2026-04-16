@@ -25,7 +25,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/smoke-test.mjs"
+    "test": "node scripts/test-all.mjs",
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "test:provider": "node scripts/provider-contract-test.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
