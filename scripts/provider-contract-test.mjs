@@ -149,6 +149,7 @@ async function run() {
   assert(health.status === 200, `Expected OpenClaw health 200, got ${health.status}`);
   assert(health.body?.provider === 'openclaw', 'Expected OpenClaw provider in health response');
   assert(health.body?.configured === true, 'Expected OpenClaw provider to be configured');
+  assert(health.body?.realExecution === true, 'Expected OpenClaw provider to be marked as real execution');
 
   const valid = await request('/api/generate', {
     method: 'POST',

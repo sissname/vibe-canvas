@@ -16,6 +16,8 @@ Vibe coding lowers the barrier to creating software, but many tools still expose
 ## Current Capabilities
 
 - Prompt-first homepage for generating an app/page draft.
+- Explicit execution-mode messaging: mock demo vs real OpenClaw execution.
+- Scenario-aware local demo generation for common product/page types.
 - Generated project workspace with Preview, editable Files, and Structure tabs.
 - HTML file edits update the sandboxed preview.
 - Export the current draft as a standalone HTML file or ZIP project package.
@@ -35,6 +37,7 @@ Add a screenshot or GIF here after publishing the repository:
 ## Known Limitations
 
 - The default `GENERATION_PROVIDER=mock` does not call a real LLM.
+- Mock mode is intentionally labeled as demo output in the UI.
 - Cloud persistence, authentication, user accounts, and rate limiting are not implemented.
 - Advanced canvas/workflow features are experimental.
 - Browser-level E2E and visual regression tests are still needed.

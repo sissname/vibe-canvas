@@ -12,6 +12,7 @@ type GenerationProvider = 'mock' | 'openclaw';
 export interface GenerationHealth {
   configured: boolean;
   provider: GenerationProvider;
+  realExecution: boolean;
   issues: string[];
 }
 
@@ -36,6 +37,7 @@ export function getGenerationHealth(): GenerationHealth {
   return {
     configured: issues.length === 0,
     provider,
+    realExecution: provider === 'openclaw' && issues.length === 0,
     issues,
   };
 }

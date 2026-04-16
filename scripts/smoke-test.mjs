@@ -77,6 +77,10 @@ async function run() {
     generationHealth.body?.configured === true,
     'Expected default generation provider to be configured'
   );
+  assert(
+    generationHealth.body?.realExecution === false,
+    'Expected default mock provider to be marked as non-real execution'
+  );
 
   const generated = await request('/api/generate', {
     method: 'POST',
@@ -89,6 +93,26 @@ async function run() {
   assert(
     generated.body?.project?.previewHtml?.includes('<script') === false,
     'Expected generated preview HTML to avoid inline scripts'
+  );
+
+  const photographer = await request('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: '做一个给摄影师接单的作品集网站' }),
+  });
+  assert(photographer.status === 200, `Expected photographer generate 200, got ${photographer.status}`);
+  assert(
+    photographer.body?.project?.title?.includes('摄影师'),
+    'Expected photographer prompt to produce a photographer-specific project'
+  );
+  assert(
+    photographer.body?.project?.requirement?.projectType?.includes('摄影师'),
+    'Expected generated project to include requirement understanding'
+  );
+  assert(
+    Array.isArray(photographer.body?.project?.executionSteps) &&
+      photographer.body.project.executionSteps.length >= 3,
+    'Expected generated project to include execution steps'
   );
 
   const emptyPrompt = await request('/api/generate', {

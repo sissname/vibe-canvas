@@ -44,12 +44,14 @@ const generationSteps = ['理解需求', '生成页面主张', '组织项目文�
 interface GenerationHealthView {
   configured: boolean;
   provider: 'mock' | 'openclaw';
+  realExecution: boolean;
   issues: string[];
 }
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'preview' | 'files' | 'plan'>('preview');
   const [generationHealth, setGenerationHealth] = useState<GenerationHealthView | null>(null);
+  const [progressIndex, setProgressIndex] = useState(0);
   const {
     clear,
     error,
@@ -78,6 +80,7 @@ export default function Home() {
           setGenerationHealth({
             configured: false,
             provider: 'mock',
+            realExecution: false,
             issues: ['Unable to read generation health'],
           });
         }
@@ -88,7 +91,18 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const interval = window.setInterval(() => {
+      setProgressIndex((current) => Math.min(current + 1, generationSteps.length - 1));
+    }, 520);
+
+    return () => window.clearInterval(interval);
+  }, [isGenerating]);
+
   const handleGenerate = async () => {
+    setProgressIndex(0);
     const generated = await generate(prompt);
     if (!generated) return;
 
@@ -155,6 +169,7 @@ export default function Home() {
             generationHealth={generationHealth}
             isGenerating={isGenerating}
             onGenerate={handleGenerate}
+            progressIndex={progressIndex}
             prompt={prompt}
             setPrompt={setPrompt}
           />
@@ -179,7 +194,7 @@ export default function Home() {
 }
 
 function AppHeader({ generationHealth }: { generationHealth: GenerationHealthView | null }) {
-  const isRealProvider = generationHealth?.provider === 'openclaw' && generationHealth.configured;
+  const isRealProvider = generationHealth?.realExecution === true;
 
   return (
     <header className="flex items-center justify-between gap-4 border-b border-slate-200/70 bg-white/72 px-5 py-4 backdrop-blur-xl">
@@ -210,6 +225,7 @@ function LandingStage({
   generationHealth,
   isGenerating,
   onGenerate,
+  progressIndex,
   prompt,
   setPrompt,
 }: {
@@ -217,6 +233,7 @@ function LandingStage({
   generationHealth: GenerationHealthView | null;
   isGenerating: boolean;
   onGenerate: () => void;
+  progressIndex: number;
   prompt: string;
   setPrompt: (prompt: string) => void;
 }) {
@@ -278,7 +295,7 @@ function LandingStage({
         </div>
 
         {isGenerating ? (
-          <GenerationProgress />
+          <GenerationProgress progressIndex={progressIndex} />
         ) : (
           <>
             <div className="mx-auto mt-5 flex max-w-[760px] flex-wrap justify-center gap-2">
@@ -317,7 +334,7 @@ function GenerationModeNotice({
 }: {
   generationHealth: GenerationHealthView | null;
 }) {
-  const isRealProvider = generationHealth?.provider === 'openclaw' && generationHealth.configured;
+  const isRealProvider = generationHealth?.realExecution === true;
 
   return (
     <div className={`mx-auto mt-4 max-w-[760px] rounded-[22px] border px-4 py-3 text-left shadow-sm ${
@@ -337,7 +354,7 @@ function GenerationModeNotice({
   );
 }
 
-function GenerationProgress() {
+function GenerationProgress({ progressIndex }: { progressIndex: number }) {
   return (
     <div className="mx-auto mt-7 grid max-w-[760px] gap-3 text-left sm:grid-cols-4">
       {generationSteps.map((step, index) => (
@@ -346,8 +363,10 @@ function GenerationProgress() {
             <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-500">
               Step {index + 1}
             </span>
-            {index === 0 ? (
+            {index === progressIndex ? (
               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            ) : index < progressIndex ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             ) : (
               <span className="h-2 w-2 rounded-full bg-slate-300" />
             )}
@@ -368,7 +387,7 @@ function ExecutionModeCard({
   generationHealth: GenerationHealthView | null;
   prompt: string;
 }) {
-  const isRealProvider = generationHealth?.provider === 'openclaw' && generationHealth.configured;
+  const isRealProvider = generationHealth?.realExecution === true;
   const modeLabel = isRealProvider ? 'OpenClaw 真实执行' : '本地 Mock 生成';
 
   return (
@@ -411,6 +430,35 @@ function ExecutionModeCard({
           注意：这不是 Agent 真执行，只是为了本地体验和 UI 闭环的模拟输出。
         </p>
       )}
+    </div>
+  );
+}
+
+function RequirementCard({
+  requirement,
+}: {
+  requirement: NonNullable<GeneratedProject['requirement']>;
+}) {
+  return (
+    <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+        需求理解
+      </p>
+      <div className="mt-3 space-y-2">
+        {[
+          ['类型', requirement.projectType],
+          ['用户', requirement.audience],
+          ['目标', requirement.goal],
+          ['风格', requirement.style],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-[16px] bg-slate-50 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              {label}
+            </p>
+            <p className="mt-1 text-[12px] leading-5 text-slate-700">{value}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -467,6 +515,10 @@ function ProjectStage({
           generationHealth={generationHealth}
           prompt={project.prompt}
         />
+
+        {project.requirement && (
+          <RequirementCard requirement={project.requirement} />
+        )}
 
         <div className="mt-8 space-y-3">
           {['预览当前页面', '查看生成文件', '拆解页面结构'].map((item) => (
@@ -840,16 +892,67 @@ function CodeEditor({
 
 function PlanPanel({ project }: { project: GeneratedProject }) {
   return (
-    <div className="space-y-3">
-      {project.sections.map((section, index) => (
-        <div key={section.title} className="rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Step {index + 1}
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.55fr)]">
+      <div className="space-y-3">
+        <div className="rounded-[22px] border border-blue-100 bg-blue-50 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-500">
+            Product Plan
           </p>
-          <h3 className="mt-1 text-[15px] font-semibold text-slate-950">{section.title}</h3>
-          <p className="mt-2 text-[13px] leading-6 text-slate-600">{section.description}</p>
+          <h3 className="mt-2 text-[18px] font-semibold text-slate-950">{project.title}</h3>
+          <p className="mt-2 text-[13px] leading-6 text-slate-600">{project.description}</p>
         </div>
-      ))}
+
+        {project.sections.map((section, index) => (
+          <div key={section.title} className="rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Section {index + 1}
+            </p>
+            <h3 className="mt-1 text-[15px] font-semibold text-slate-950">{section.title}</h3>
+            <p className="mt-2 text-[13px] leading-6 text-slate-600">{section.description}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        <div className="rounded-[22px] border border-slate-200 bg-slate-950 px-4 py-4 text-white shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/42">
+            执行记录
+          </p>
+          <div className="mt-4 space-y-3">
+            {(project.executionSteps ?? []).map((step, index) => (
+              <div key={`${step.title}-${index}`} className="rounded-[18px] bg-white/8 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-semibold text-white">{step.title}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    step.status === 'completed'
+                      ? 'bg-emerald-400/16 text-emerald-200'
+                      : step.status === 'failed'
+                        ? 'bg-red-400/16 text-red-200'
+                        : 'bg-amber-400/16 text-amber-200'
+                  }`}>
+                    {step.status === 'completed' ? '完成' : step.status === 'failed' ? '失败' : '跳过'}
+                  </span>
+                </div>
+                <p className="mt-2 text-[12px] leading-5 text-white/62">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            下一步
+          </p>
+          <div className="mt-3 space-y-2">
+            {(project.nextActions ?? []).map((action, index) => (
+              <div key={action} className="flex gap-2 rounded-[16px] bg-slate-50 px-3 py-2">
+                <span className="text-[12px] font-semibold text-blue-600">{index + 1}</span>
+                <p className="text-[12px] leading-5 text-slate-700">{action}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
