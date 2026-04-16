@@ -36,7 +36,7 @@ const starterPrompts = [
 const productMetrics = [
   { label: '生成产物', value: '页面 + 文档' },
   { label: '下一步', value: '预览 / 继续改' },
-  { label: '模式', value: '先结果后编辑' },
+  { label: '模式', value: '先解释再预览' },
 ];
 
 const generationSteps = ['理解需求', '生成页面主张', '组织项目文件', '准备预览'];
@@ -106,16 +106,21 @@ export default function Home() {
     const generated = await generate(prompt);
     if (!generated) return;
 
-    setFiles(createProjectFiles(generated.files));
-    openProjectPreview(generated);
-    setActiveTab('preview');
+    const generatedFiles = createProjectFiles(generated.files);
+    setFiles(generatedFiles);
+    openProjectPreview(generated, false, generatedFiles);
+    setActiveTab('plan');
   };
 
-  const openProjectPreview = (targetProject = project, openInNewTab = false) => {
+  const openProjectPreview = (
+    targetProject = project,
+    openInNewTab = false,
+    targetFiles = files
+  ) => {
     if (!targetProject) return;
 
     const previewUrl = SimplePreviewService.createPreviewUrl(
-      getEditablePreviewHtml(targetProject, files)
+      getEditablePreviewHtml(targetProject, targetFiles)
     );
     setUrl(previewUrl);
     show();
@@ -237,6 +242,8 @@ function LandingStage({
   prompt: string;
   setPrompt: (prompt: string) => void;
 }) {
+  const isRealProvider = generationHealth?.realExecution === true;
+
   return (
     <section className="relative flex min-h-[calc(100vh-98px)] items-center justify-center px-5 py-8 sm:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(37,99,235,0.14),transparent_28%),radial-gradient(circle_at_18%_82%,rgba(6,182,212,0.14),transparent_24%)]" />
@@ -282,17 +289,21 @@ function LandingStage({
                 </>
               ) : (
                 <>
-                  生成应用初稿
+                  {isRealProvider ? '执行 OpenClaw 生成' : '演示生成初稿'}
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
 
             <span className="flex items-center justify-center rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-[12px] font-semibold text-slate-500">
-              生成后进入工作台
+              {isRealProvider ? '真实执行后进入工作台' : '演示输出后进入工作台'}
             </span>
           </div>
         </div>
+
+        {!isRealProvider && !isGenerating && (
+          <OpenClawSetupHint compact />
+        )}
 
         {isGenerating ? (
           <GenerationProgress progressIndex={progressIndex} />
@@ -350,6 +361,26 @@ function GenerationModeNotice({
           ? '提交想法后会请求已配置的 OpenClaw endpoint，并校验返回的项目结构。'
           : '你仍然会得到可编辑预览和文件，但这是本地 mock 产物。要真实执行，需要配置 GENERATION_PROVIDER=openclaw 和 OPENCLAW_GENERATE_URL。'}
       </p>
+    </div>
+  );
+}
+
+function OpenClawSetupHint({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`mx-auto max-w-[760px] rounded-[24px] border border-amber-200 bg-white/88 text-left shadow-sm ${
+      compact ? 'mt-5 px-4 py-4' : 'mt-4 px-4 py-4'
+    }`}>
+      <p className="text-[13px] font-semibold text-slate-950">
+        要让它真的执行，需要接入 OpenClaw
+      </p>
+      <p className="mt-1 text-[12px] leading-5 text-slate-600">
+        当前本地没有 OpenClaw endpoint，所以只能生成演示产物。配置后，首页按钮会切换为真实执行。
+      </p>
+      <div className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-[16px] bg-slate-950 px-3 py-3 font-mono text-[11px] leading-5 text-slate-100">
+        <div>GENERATION_PROVIDER=openclaw</div>
+        <div>OPENCLAW_GENERATE_URL=https://your-openclaw-endpoint/generate</div>
+        <div>OPENCLAW_API_TOKEN=optional-token</div>
+      </div>
     </div>
   );
 }
@@ -515,6 +546,10 @@ function ProjectStage({
           generationHealth={generationHealth}
           prompt={project.prompt}
         />
+
+        {generationHealth?.realExecution !== true && (
+          <OpenClawSetupHint compact />
+        )}
 
         {project.requirement && (
           <RequirementCard requirement={project.requirement} />
