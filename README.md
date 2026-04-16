@@ -1,36 +1,156 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VibeCanvas
 
-## Getting Started
+VibeCanvas is an experimental **Idea to App Studio**. Describe a product idea in one sentence, generate a first usable draft, then inspect the preview, files, and structure before moving into advanced editing.
 
-First, run the development server:
+> Status: Alpha. The default generator is a local mock provider. Real generation requires an OpenClaw-compatible endpoint.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Why
+
+Vibe coding lowers the barrier to creating software, but many tools still expose too much complexity up front. VibeCanvas starts with a simple prompt-first flow:
+
+1. Describe the product or page you want.
+2. Generate a draft with preview content and project files.
+3. Review the generated structure.
+4. Continue into advanced workflow/canvas editing when needed.
+
+## Current Capabilities
+
+- Prompt-first homepage for generating an app/page draft.
+- Generated project workspace with Preview, Files, and Structure tabs.
+- Local mock generator for demo and development.
+- Optional OpenClaw provider hook via environment variables.
+- Local persistence for the latest generated project and files.
+- Smoke test that validates homepage rendering and key API paths.
+
+## Screenshot
+
+Add a screenshot or GIF here after publishing the repository:
+
+```md
+![VibeCanvas prompt-first app studio](./docs/screenshot.png)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Known Limitations
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- The default `GENERATION_PROVIDER=mock` does not call a real LLM.
+- Cloud persistence, authentication, user accounts, and rate limiting are not implemented.
+- Advanced canvas/workflow features are experimental.
+- Generated preview currently uses Blob HTML, not a hardened sandbox.
+- Browser-level E2E and visual regression tests are still needed.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Quick Start
 
-## Learn More
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# mock: local demo generator
+# openclaw: call OPENCLAW_GENERATE_URL
+GENERATION_PROVIDER=mock
 
-## Deploy on Vercel
+# Required only when GENERATION_PROVIDER=openclaw
+OPENCLAW_GENERATE_URL=
+OPENCLAW_API_TOKEN=
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev      # Start the dev server
+npm run build    # Build for production
+npm run start    # Start the production server
+npm run lint     # Run ESLint
+npm test         # Run production smoke tests
+```
+
+## OpenClaw Provider Contract
+
+When `GENERATION_PROVIDER=openclaw`, `OPENCLAW_GENERATE_URL` should accept:
+
+```json
+{
+  "prompt": "Build a SaaS dashboard homepage"
+}
+```
+
+And return:
+
+```json
+{
+  "project": {
+    "id": "project-id",
+    "prompt": "original prompt",
+    "title": "Project title",
+    "tagline": "Main value proposition",
+    "description": "Short description",
+    "primaryAction": "Start",
+    "secondaryAction": "Learn more",
+    "sections": [
+      { "title": "Section", "description": "Section description" }
+    ],
+    "files": [
+      {
+        "name": "landing-page.html",
+        "path": "app/landing-page.html",
+        "language": "html",
+        "content": "<main>...</main>"
+      }
+    ],
+    "previewHtml": "<main>...</main>",
+    "createdAt": "2026-04-16T00:00:00.000Z"
+  }
+}
+```
+
+## Project Structure
+
+```text
+app/
+  api/generate/route.ts      # Generation API
+  page.tsx                   # Prompt-first app studio UI
+  layout.tsx                 # Root layout
+  globals.css                # Design tokens and global styles
+components/                  # Experimental canvas/layout/preview components
+lib/
+  generation-service.ts      # Mock/OpenClaw provider boundary
+  mock-generation.ts         # Local demo generator
+stores/                      # Zustand stores
+types/                       # Shared TypeScript types
+scripts/smoke-test.mjs       # Production smoke test
+```
+
+## Validation Before Publishing
+
+```bash
+npm run lint
+npm run build
+npm test
+npm audit --audit-level=moderate
+```
+
+## Security Notes
+
+This project contains experimental workflow/canvas code paths. Do not execute untrusted generated code in production without a real sandbox, review, and runtime isolation. See [SECURITY.md](./SECURITY.md).
+
+## Roadmap
+
+See [ROADMAP.md](./ROADMAP.md).
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md).
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
+
+## License
+
+MIT. See [LICENSE](./LICENSE).

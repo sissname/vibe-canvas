@@ -2,16 +2,42 @@
   "name": "vibe-canvas",
   "version": "0.1.0",
   "private": true,
+  "description": "Experimental prompt-first idea to app studio.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sissname/vibe-canvas.git"
+  },
+  "homepage": "https://github.com/sissname/vibe-canvas#readme",
+  "bugs": {
+    "url": "https://github.com/sissname/vibe-canvas/issues"
+  },
+  "keywords": [
+    "ai",
+    "vibe-coding",
+    "nextjs",
+    "openclaw",
+    "workflow",
+    "prototype"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
+    "@xyflow/react": "^12.10.2",
+    "axios": "^1.15.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.5.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

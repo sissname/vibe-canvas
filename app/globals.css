@@ -1,26 +1,363 @@
 @import "tailwindcss";
 
+/* ========================================
+   VibeCanvas 设计令牌 (Design Tokens)
+   ======================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 主色调 */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1e40af;
+  --color-primary-light: #dbeafe;
+  --color-accent: #0f766e;
+  --color-accent-light: #ccfbf1;
+  
+  /* 功能色 */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #0ea5e9;
+  
+  /* 节点类型色 */
+  --color-node-input: #0891b2;
+  --color-node-agent: #2563eb;
+  --color-node-code: #7c3aed;
+  --color-node-output: #0f766e;
+  --color-node-api: #0284c7;
+  --color-node-condition: #d97706;
+  --color-node-loop: #ea580c;
+  --color-node-database: #4f46e5;
+  --color-node-file: #475569;
+  --color-node-webhook: #dc2626;
+  
+  /* 背景色 */
+  --bg-primary: #eef3f9;
+  --bg-secondary: #e6edf5;
+  --bg-tertiary: #dce6f0;
+  --bg-elevated: rgb(255 255 255 / 0.88);
+  --bg-canvas: #e7eef7;
+  --bg-overlay: rgb(15 23 42 / 0.62);
+  
+  /* 文字色 */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #7b8aa0;
+  --text-inverse: #ffffff;
+  
+  /* 边框色 */
+  --border-light: rgb(255 255 255 / 0.7);
+  --border-default: #d4deeb;
+  --border-dark: #94a3b8;
+  
+  /* 阴影 */
+  --shadow-sm: 0 10px 20px rgb(15 23 42 / 0.05);
+  --shadow-md: 0 18px 42px rgb(15 23 42 / 0.09);
+  --shadow-lg: 0 28px 64px rgb(15 23 42 / 0.13);
+  --shadow-xl: 0 40px 96px rgb(15 23 42 / 0.16);
+  
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  
+  /* 字体 */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  
+  /* 动画 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ========================================
+   Tailwind 配置
+   ======================================== */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  
+  /* 自定义颜色 */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+  --color-accent: var(--color-accent);
+  --color-accent-light: var(--color-accent-light);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  
+  /* 节点颜色 */
+  --color-node-input: var(--color-node-input);
+  --color-node-agent: var(--color-node-agent);
+  --color-node-code: var(--color-node-code);
+  --color-node-output: var(--color-node-output);
+  --color-node-api: var(--color-node-api);
+  --color-node-condition: var(--color-node-condition);
+  --color-node-loop: var(--color-node-loop);
+  --color-node-database: var(--color-node-database);
+  --color-node-file: var(--color-node-file);
+  --color-node-webhook: var(--color-node-webhook);
+  
+  /* 背景色 */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-overlay: var(--bg-overlay);
+  
+  /* 文字色 */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  
+  /* 边框色 */
+  --color-border-light: var(--border-light);
+  --color-border-default: var(--border-default);
+  --color-border-dark: var(--border-dark);
+  
+  /* 阴影 */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  
+  /* 圆角 */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  
+  /* 间距 */
+  --space-1: var(--space-1);
+  --space-2: var(--space-2);
+  --space-3: var(--space-3);
+  --space-4: var(--space-4);
+  --space-5: var(--space-5);
+  --space-6: var(--space-6);
+  --space-8: var(--space-8);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ========================================
+   全局样式
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgb(37 99 235 / 0.18), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgb(6 182 212 / 0.12), transparent 22%),
+    radial-gradient(circle at 50% 100%, rgb(14 165 233 / 0.06), transparent 28%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.66), transparent 22%),
+    var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(148 163 184 / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at center, black 32%, transparent 88%);
+  opacity: 0.4;
+}
+
+/* ========================================
+   滚动条样式
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ========================================
+   选中文本样式
+   ======================================== */
+
+::selection {
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+}
+
+/* ========================================
+   焦点样式
+   ======================================== */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   动画工具类
+   ======================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-base) ease-out;
+}
+
+.panel-surface {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.975), rgb(247 250 252 / 0.99));
+  border: 1px solid rgb(255 255 255 / 0.92);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.panel-muted {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(245 248 252 / 0.96));
+  border: 1px solid rgb(224 231 239 / 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-slow) ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ========================================
+   React Flow 自定义样式
+   ======================================== */
+
+.react-flow__node {
+  cursor: grab;
+}
+
+.react-flow__node:active {
+  cursor: grabbing;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2.4;
+  stroke: rgb(148 163 184 / 0.95);
+}
+
+.react-flow__controls {
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  background: var(--bg-primary);
+}
+
+.react-flow__controls-button {
+  border: none;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-primary);
+}
+
+.react-flow__background {
+  background: var(--bg-canvas);
+}
+
+.react-flow__background-pattern circle {
+  fill: rgb(148 163 184 / 0.22);
+}
+
+.react-flow__handle {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.82);
 }

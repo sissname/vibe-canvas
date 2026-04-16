@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      next-react:
+        patterns:
+          - next
+          - react
+          - react-dom
+      linting:
+        patterns:
+          - eslint
+          - eslint-config-next
+      types:
+        patterns:
+          - "@types/*"
