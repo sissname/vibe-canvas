@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -41,8 +41,15 @@ const productMetrics = [
 
 const generationSteps = ['理解需求', '生成页面主张', '组织项目文件', '准备预览'];
 
+interface GenerationHealthView {
+  configured: boolean;
+  provider: 'mock' | 'openclaw';
+  issues: string[];
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'preview' | 'files' | 'plan'>('preview');
+  const [generationHealth, setGenerationHealth] = useState<GenerationHealthView | null>(null);
   const {
     clear,
     error,
@@ -57,6 +64,29 @@ export default function Home() {
 
   const isGenerating = status === 'generating';
   const hasProject = status === 'generated' && project;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch('/api/generate/health')
+      .then((response) => response.json())
+      .then((health: GenerationHealthView) => {
+        if (isMounted) setGenerationHealth(health);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setGenerationHealth({
+            configured: false,
+            provider: 'mock',
+            issues: ['Unable to read generation health'],
+          });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleGenerate = async () => {
     const generated = await generate(prompt);
@@ -117,11 +147,12 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#eef3f9] p-3 text-slate-950">
       <div className="min-h-[calc(100vh-24px)] overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(135deg,#f8fbff_0%,#eef6ff_46%,#e8f7fb_100%)] shadow-[0_30px_90px_rgba(15,23,42,0.12)]">
-        <AppHeader />
+        <AppHeader generationHealth={generationHealth} />
 
         {!hasProject && (
           <LandingStage
             error={error}
+            generationHealth={generationHealth}
             isGenerating={isGenerating}
             onGenerate={handleGenerate}
             prompt={prompt}
@@ -138,6 +169,7 @@ export default function Home() {
             onDownloadZip={downloadProjectZip}
             onOpenPreview={() => openProjectPreview(undefined, true)}
             project={project}
+            generationHealth={generationHealth}
             setActiveTab={setActiveTab}
           />
         )}
@@ -146,7 +178,9 @@ export default function Home() {
   );
 }
 
-function AppHeader() {
+function AppHeader({ generationHealth }: { generationHealth: GenerationHealthView | null }) {
+  const isRealProvider = generationHealth?.provider === 'openclaw' && generationHealth.configured;
+
   return (
     <header className="flex items-center justify-between gap-4 border-b border-slate-200/70 bg-white/72 px-5 py-4 backdrop-blur-xl">
       <div className="flex items-center gap-3">
@@ -164,8 +198,8 @@ function AppHeader() {
       </div>
 
       <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-600 shadow-sm md:flex">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-        生成链路已接入
+        <span className={`h-2 w-2 rounded-full ${isRealProvider ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+        {isRealProvider ? 'OpenClaw 执行已接入' : '本地演示生成'}
       </div>
     </header>
   );
@@ -173,12 +207,14 @@ function AppHeader() {
 
 function LandingStage({
   error,
+  generationHealth,
   isGenerating,
   onGenerate,
   prompt,
   setPrompt,
 }: {
   error: string | null;
+  generationHealth: GenerationHealthView | null;
   isGenerating: boolean;
   onGenerate: () => void;
   prompt: string;
@@ -192,6 +228,8 @@ function LandingStage({
           <Wand2 className="h-3.5 w-3.5" />
           不从复杂画布开始，先生成一个可看的应用初稿
         </div>
+
+        <GenerationModeNotice generationHealth={generationHealth} />
 
         <h2 className="mx-auto mt-6 max-w-[820px] text-[40px] font-semibold leading-[1.05] tracking-[-0.045em] text-slate-950 sm:text-[56px]">
           把一句产品想法，变成第一版应用
@@ -274,6 +312,31 @@ function LandingStage({
   );
 }
 
+function GenerationModeNotice({
+  generationHealth,
+}: {
+  generationHealth: GenerationHealthView | null;
+}) {
+  const isRealProvider = generationHealth?.provider === 'openclaw' && generationHealth.configured;
+
+  return (
+    <div className={`mx-auto mt-4 max-w-[760px] rounded-[22px] border px-4 py-3 text-left shadow-sm ${
+      isRealProvider
+        ? 'border-emerald-100 bg-emerald-50/88 text-emerald-900'
+        : 'border-amber-100 bg-amber-50/88 text-amber-900'
+    }`}>
+      <p className="text-[13px] font-semibold">
+        {isRealProvider ? '当前会调用 OpenClaw 真实执行' : '当前是本地演示生成，不会调用真实 Agent'}
+      </p>
+      <p className="mt-1 text-[12px] leading-5 opacity-80">
+        {isRealProvider
+          ? '提交想法后会请求已配置的 OpenClaw endpoint，并校验返回的项目结构。'
+          : '你仍然会得到可编辑预览和文件，但这是本地 mock 产物。要真实执行，需要配置 GENERATION_PROVIDER=openclaw 和 OPENCLAW_GENERATE_URL。'}
+      </p>
+    </div>
+  );
+}
+
 function GenerationProgress() {
   return (
     <div className="mx-auto mt-7 grid max-w-[760px] gap-3 text-left sm:grid-cols-4">
@@ -296,8 +359,65 @@ function GenerationProgress() {
   );
 }
 
+function ExecutionModeCard({
+  filesCount,
+  generationHealth,
+  prompt,
+}: {
+  filesCount: number;
+  generationHealth: GenerationHealthView | null;
+  prompt: string;
+}) {
+  const isRealProvider = generationHealth?.provider === 'openclaw' && generationHealth.configured;
+  const modeLabel = isRealProvider ? 'OpenClaw 真实执行' : '本地 Mock 生成';
+
+  return (
+    <div className={`mt-6 rounded-[24px] border px-4 py-4 ${
+      isRealProvider
+        ? 'border-emerald-100 bg-emerald-50'
+        : 'border-amber-100 bg-amber-50'
+    }`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Execution
+        </p>
+        <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+          isRealProvider ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+        }`}>
+          {modeLabel}
+        </span>
+      </div>
+      <p className="mt-3 line-clamp-3 text-[12px] leading-5 text-slate-700">
+        输入：{prompt}
+      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-[16px] bg-white/76 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Files
+          </p>
+          <p className="mt-1 text-[14px] font-semibold text-slate-950">{filesCount}</p>
+        </div>
+        <div className="rounded-[16px] bg-white/76 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Provider
+          </p>
+          <p className="mt-1 text-[14px] font-semibold text-slate-950">
+            {generationHealth?.provider ?? 'checking'}
+          </p>
+        </div>
+      </div>
+      {!isRealProvider && (
+        <p className="mt-3 text-[11px] leading-5 text-amber-800">
+          注意：这不是 Agent 真执行，只是为了本地体验和 UI 闭环的模拟输出。
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface ProjectStageProps {
   activeTab: 'preview' | 'files' | 'plan';
+  generationHealth: GenerationHealthView | null;
   isGenerating: boolean;
   project: GeneratedProject;
   setActiveTab: (tab: 'preview' | 'files' | 'plan') => void;
@@ -309,6 +429,7 @@ interface ProjectStageProps {
 
 function ProjectStage({
   activeTab,
+  generationHealth,
   isGenerating,
   project,
   setActiveTab,
@@ -340,6 +461,12 @@ function ProjectStage({
             {project.description}
           </p>
         </div>
+
+        <ExecutionModeCard
+          filesCount={project.files.length}
+          generationHealth={generationHealth}
+          prompt={project.prompt}
+        />
 
         <div className="mt-8 space-y-3">
           {['预览当前页面', '查看生成文件', '拆解页面结构'].map((item) => (
