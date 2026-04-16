@@ -18,6 +18,7 @@ Vibe coding lowers the barrier to creating software, but many tools still expose
 - Prompt-first homepage for generating an app/page draft.
 - Generated project workspace with Preview, editable Files, and Structure tabs.
 - HTML file edits update the sandboxed preview.
+- Export the current draft as a standalone HTML file or ZIP project package.
 - Local mock generator for demo and development.
 - Optional OpenClaw provider hook via environment variables.
 - Local persistence for the latest generated project and files.

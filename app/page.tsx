@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Archive,
   CheckCircle2,
   Code2,
   Download,
@@ -19,6 +20,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import { SimplePreviewService } from '@/lib/preview-service';
+import { createProjectZip } from '@/lib/project-zip';
 import { ProjectFile, useFileStore } from '@/stores/file-store';
 import { useGenerationStore } from '@/stores/generation-store';
 import { usePreviewStore } from '@/stores/preview-store';
@@ -93,6 +95,19 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const downloadProjectZip = () => {
+    if (!project) return;
+
+    const blob = createProjectZip(project, files);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `${slugify(project.title)}.zip`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const resetToHome = () => {
     hide();
     clear();
@@ -120,6 +135,7 @@ export default function Home() {
             isGenerating={isGenerating}
             onBack={resetToHome}
             onDownloadHtml={downloadProjectHtml}
+            onDownloadZip={downloadProjectZip}
             onOpenPreview={() => openProjectPreview(undefined, true)}
             project={project}
             setActiveTab={setActiveTab}
@@ -287,6 +303,7 @@ interface ProjectStageProps {
   setActiveTab: (tab: 'preview' | 'files' | 'plan') => void;
   onBack: () => void;
   onDownloadHtml: () => void;
+  onDownloadZip: () => void;
   onOpenPreview: () => void;
 }
 
@@ -297,6 +314,7 @@ function ProjectStage({
   setActiveTab,
   onBack,
   onDownloadHtml,
+  onDownloadZip,
   onOpenPreview,
 }: ProjectStageProps) {
   return (
@@ -346,6 +364,14 @@ function ProjectStage({
         >
           <Download className="h-4 w-4" />
           导出当前 HTML
+        </button>
+
+        <button
+          onClick={onDownloadZip}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[22px] border border-blue-100 bg-blue-50 px-4 py-3 text-[14px] font-semibold text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100"
+        >
+          <Archive className="h-4 w-4" />
+          导出项目 ZIP
         </button>
       </aside>
 
