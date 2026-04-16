@@ -6,11 +6,16 @@ import {
   ArrowRight,
   CheckCircle2,
   Code2,
+  Download,
+  Eye,
   ExternalLink,
   FileText,
   Layers3,
   Loader2,
+  Plus,
+  RotateCcw,
   Sparkles,
+  Trash2,
   Wand2,
 } from 'lucide-react';
 import { SimplePreviewService } from '@/lib/preview-service';
@@ -74,6 +79,20 @@ export default function Home() {
     }
   };
 
+  const downloadProjectHtml = () => {
+    if (!project) return;
+
+    const html = getEditablePreviewHtml(project, files);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `${slugify(project.title)}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const resetToHome = () => {
     hide();
     clear();
@@ -100,6 +119,7 @@ export default function Home() {
             activeTab={activeTab}
             isGenerating={isGenerating}
             onBack={resetToHome}
+            onDownloadHtml={downloadProjectHtml}
             onOpenPreview={() => openProjectPreview(undefined, true)}
             project={project}
             setActiveTab={setActiveTab}
@@ -266,6 +286,7 @@ interface ProjectStageProps {
   project: GeneratedProject;
   setActiveTab: (tab: 'preview' | 'files' | 'plan') => void;
   onBack: () => void;
+  onDownloadHtml: () => void;
   onOpenPreview: () => void;
 }
 
@@ -275,6 +296,7 @@ function ProjectStage({
   project,
   setActiveTab,
   onBack,
+  onDownloadHtml,
   onOpenPreview,
 }: ProjectStageProps) {
   return (
@@ -316,6 +338,14 @@ function ProjectStage({
         >
           <ExternalLink className="h-4 w-4" />
           打开完整预览
+        </button>
+
+        <button
+          onClick={onDownloadHtml}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-[14px] font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700"
+        >
+          <Download className="h-4 w-4" />
+          导出当前 HTML
         </button>
       </aside>
 
@@ -377,7 +407,10 @@ function ResultWorkspace({
           )}
 
           {activeTab === 'files' && (
-            <FilesPanel project={project} />
+            <FilesPanel
+              project={project}
+              setActiveTab={setActiveTab}
+            />
           )}
 
           {activeTab === 'plan' && (
@@ -464,21 +497,66 @@ function PreviewPanel({
   );
 }
 
-function FilesPanel({ project }: { project: GeneratedProject }) {
-  const { files, selectedFileId, selectFile, updateFile } = useFileStore();
+function FilesPanel({
+  project,
+  setActiveTab,
+}: {
+  project: GeneratedProject;
+  setActiveTab: (tab: 'preview' | 'files' | 'plan') => void;
+}) {
+  const { addFile, deleteFile, files, selectedFileId, selectFile, updateFile } = useFileStore();
   const editableFiles = files.length > 0 ? files : createProjectFiles(project.files);
   const selectedFile = editableFiles.find((file) => file.id === selectedFileId) ?? editableFiles[0];
+  const originalFile = selectedFile
+    ? project.files.find((file) => file.path === selectedFile.path)
+    : undefined;
+  const hasChanges = Boolean(
+    selectedFile &&
+    originalFile &&
+    selectedFile.content !== originalFile.content
+  );
+  const lineCount = selectedFile ? getLineCount(selectedFile.content) : 0;
+  const addDraftFile = () => {
+    const fileNumber = editableFiles.length + 1;
+    const file = addFile({
+      name: `note-${fileNumber}.md`,
+      path: `docs/note-${fileNumber}.md`,
+      language: 'markdown',
+      content: `# Note ${fileNumber}\n\n记录你的下一步修改想法。\n`,
+    });
+
+    selectFile(file.id);
+  };
+  const deleteSelectedFile = () => {
+    if (!selectedFile || editableFiles.length <= 1) return;
+
+    const nextFile = editableFiles.find((file) => file.id !== selectedFile.id);
+    deleteFile(selectedFile.id);
+    selectFile(nextFile?.id ?? null);
+  };
 
   return (
     <div className="grid h-full min-h-[520px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
       <div className="min-h-0 overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50">
         <div className="border-b border-slate-200 bg-white px-4 py-3">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            Project Files
-          </p>
-          <p className="mt-1 text-[13px] font-semibold text-slate-800">
-            选择文件后可直接编辑
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                Project Files
+              </p>
+              <p className="mt-1 text-[13px] font-semibold text-slate-800">
+                选择文件后可直接编辑
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addDraftFile}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-950 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="h-3 w-3" />
+              新文件
+            </button>
+          </div>
         </div>
 
         <div className="max-h-[456px] space-y-2 overflow-auto p-2">
@@ -498,7 +576,12 @@ function FilesPanel({ project }: { project: GeneratedProject }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-slate-950">{file.name}</p>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-[13px] font-semibold text-slate-950">{file.name}</p>
+                      {project.files.find((projectFile) => projectFile.path === file.path)?.content !== file.content && (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                      )}
+                    </div>
                     <p className="mt-1 truncate text-[11px] text-slate-500">{file.path}</p>
                   </div>
                   <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
@@ -514,21 +597,53 @@ function FilesPanel({ project }: { project: GeneratedProject }) {
       <div className="flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-slate-200 bg-slate-950 shadow-sm">
         {selectedFile ? (
           <>
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-slate-900 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-900 px-4 py-3">
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-semibold text-white">{selectedFile.name}</p>
-                <p className="mt-1 truncate text-[11px] text-white/42">{selectedFile.path}</p>
+                <p className="mt-1 truncate text-[11px] text-white/42">
+                  {selectedFile.path} · {lineCount} 行 · {selectedFile.content.length} 字符
+                </p>
               </div>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/62">
-                {isPreviewFile(selectedFile) ? '编辑后预览会同步' : '文档文件'}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  hasChanges ? 'bg-blue-400/18 text-blue-100' : 'bg-white/10 text-white/62'
+                }`}>
+                  {hasChanges ? '已修改' : '未修改'}
+                </span>
+                {isPreviewFile(selectedFile) && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('preview')}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-900 transition hover:bg-blue-50"
+                  >
+                    <Eye className="h-3 w-3" />
+                    查看预览
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => originalFile && updateFile(selectedFile.id, originalFile.content)}
+                  disabled={!hasChanges || !originalFile}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/70 transition hover:bg-white/16 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  还原
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedFile}
+                  disabled={editableFiles.length <= 1}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-red-400/14 px-3 py-1 text-[11px] font-semibold text-red-100 transition hover:bg-red-400/22 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  删除
+                </button>
+              </div>
             </div>
 
-            <textarea
-              value={selectedFile.content}
-              onChange={(event) => updateFile(selectedFile.id, event.target.value)}
-              spellCheck={false}
-              className="min-h-[458px] flex-1 resize-none bg-slate-950 px-4 py-4 font-mono text-[12px] leading-6 text-slate-100 outline-none selection:bg-blue-500/40"
+            <CodeEditor
+              content={selectedFile.content}
+              onChange={(content) => updateFile(selectedFile.id, content)}
             />
           </>
         ) : (
@@ -537,6 +652,35 @@ function FilesPanel({ project }: { project: GeneratedProject }) {
           </div>
         )}
         </div>
+    </div>
+  );
+}
+
+function CodeEditor({
+  content,
+  onChange,
+}: {
+  content: string;
+  onChange: (content: string) => void;
+}) {
+  const lineNumbers = Array.from({ length: getLineCount(content) }, (_, index) => index + 1);
+
+  return (
+    <div className="grid min-h-[458px] flex-1 grid-cols-[56px_minmax(0,1fr)] overflow-hidden bg-slate-950 font-mono text-[12px] leading-6">
+      <div
+        aria-hidden="true"
+        className="select-none overflow-hidden border-r border-white/10 bg-slate-900/78 px-3 py-4 text-right text-slate-500"
+      >
+        {lineNumbers.map((line) => (
+          <div key={line}>{line}</div>
+        ))}
+      </div>
+      <textarea
+        value={content}
+        onChange={(event) => onChange(event.target.value)}
+        spellCheck={false}
+        className="min-h-[458px] resize-none bg-slate-950 px-4 py-4 text-slate-100 outline-none selection:bg-blue-500/40"
+      />
     </div>
   );
 }
@@ -576,4 +720,16 @@ function isPreviewFile(file: Pick<ProjectFile, 'language' | 'path' | 'name'>): b
   const filePath = `${file.path}/${file.name}`.toLowerCase();
 
   return file.language.toLowerCase() === 'html' || filePath.endsWith('.html');
+}
+
+function getLineCount(content: string): number {
+  return Math.max(1, content.split('\n').length);
+}
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'vibecanvas-project';
 }
